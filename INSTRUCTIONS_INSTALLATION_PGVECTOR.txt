@@ -1,0 +1,58 @@
+============================================================
+INSTRUCTIONS POUR FINALISER L'INSTALLATION DE PGVECTOR
+============================================================
+
+La compilation de pgvector a REUSSI !
+Les fichiers sont dans: C:\Users\gemim\AppData\Local\Temp\pgvector
+
+ETAPE 1: Copier les fichiers (EN TANT QU'ADMINISTRATEUR)
+--------------------------------------------------------
+
+Ouvrez PowerShell EN TANT QU'ADMINISTRATEUR et exécutez:
+
+Copy-Item "C:\Users\gemim\AppData\Local\Temp\pgvector\vector.dll" "C:\Program Files\PostgreSQL\18\lib\vector.dll" -Force
+Copy-Item "C:\Users\gemim\AppData\Local\Temp\pgvector\vector.control" "C:\Program Files\PostgreSQL\18\share\extension\vector.control" -Force
+Copy-Item "C:\Users\gemim\AppData\Local\Temp\pgvector\sql\*.sql" "C:\Program Files\PostgreSQL\18\share\extension\" -Force
+
+OU utilisez le script batch (en tant qu'administrateur):
+  scripts\finish_pgvector_install.bat
+
+ETAPE 2: Redémarrer PostgreSQL
+-------------------------------
+
+Stop-Service postgresql-x64-18
+Start-Service postgresql-x64-18
+
+ETAPE 3: Activer l'extension
+----------------------------
+
+$env:PGPASSWORD = "root"
+& "C:\Program Files\PostgreSQL\18\bin\psql.exe" -U postgres -h localhost -d filmsrec -c "CREATE EXTENSION IF NOT EXISTS vector;"
+
+ETAPE 4: Vérifier
+-----------------
+
+python scripts\check_pgvector_status.py
+
+ETAPE 5: Configurer la base de données
+---------------------------------------
+
+python scripts\setup_database.py
+
+ETAPE 6: Ingérer les films
+---------------------------
+
+python scripts\ingest_films.py data\films.csv
+
+ETAPE 7: Générer les embeddings
+---------------------------------
+
+python scripts\generate_embeddings.py
+
+ETAPE 8: Créer l'index
+-----------------------
+
+python scripts\run_all.py --skip-setup --skip-ingestion --skip-embeddings
+
+============================================================
+

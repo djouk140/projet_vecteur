@@ -288,7 +288,7 @@ def recommend_by_film(
             SELECT embedding FROM film_embeddings WHERE film_id = %s
         )
         SELECT 
-            f.id, f.title, f.year, f.genres, f.cast, f.synopsis, f.meta,
+            f.id, f.title, f.year, f.genres, f."cast", f.synopsis, f.meta,
             (fe.embedding <=> (SELECT embedding FROM q)) AS distance
         FROM film_embeddings fe
         JOIN films f ON f.id = fe.film_id
@@ -391,7 +391,7 @@ def search(
         
         query = f"""
         SELECT 
-            f.id, f.title, f.year, f.genres, f.cast, f.synopsis, f.meta,
+            f.id, f.title, f.year, f.genres, f."cast", f.synopsis, f.meta,
             (fe.embedding <=> %s::vector) AS distance
         FROM film_embeddings fe
         JOIN films f ON f.id = fe.film_id
@@ -468,7 +468,7 @@ def get_film(film_id: int):
         conn, cur = get_connection_dict()
         
         cur.execute("""
-            SELECT id, title, year, genres, cast, synopsis, meta
+            SELECT id, title, year, genres, "cast", synopsis, meta
             FROM films
             WHERE id = %s
         """, (film_id,))

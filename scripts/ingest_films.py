@@ -142,7 +142,7 @@ def ingest_from_csv(csv_path, batch_size=1000):
             execute_values(
                 cur,
                 """
-                INSERT INTO films (title, year, genres, cast, synopsis, meta)
+                INSERT INTO films (title, year, genres, "cast", synopsis, meta)
                 VALUES %s
                 ON CONFLICT DO NOTHING
                 """,

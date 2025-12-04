@@ -13,6 +13,7 @@ import numpy as np
 from sentence_transformers import SentenceTransformer
 from config.database import get_connection
 from dotenv import load_dotenv
+from psycopg2.extras import execute_values
 
 load_dotenv()
 
@@ -76,7 +77,7 @@ def generate_embeddings(model_name=None, batch_size=32, normalize=True):
     cur = conn.cursor()
     
     # Récupérer tous les films
-    cur.execute("SELECT id, title, synopsis, genres, cast FROM films ORDER BY id")
+    cur.execute('SELECT id, title, synopsis, genres, "cast" FROM films ORDER BY id')
     films = cur.fetchall()
     
     print(f"Nombre de films à traiter: {len(films)}")
@@ -94,19 +95,27 @@ def generate_embeddings(model_name=None, batch_size=32, normalize=True):
         print(f"Génération des embeddings pour le lot {i//batch_size + 1}...")
         embeddings = model.encode(texts, normalize_embeddings=normalize, show_progress_bar=False)
         
-        # Insérer dans la base
-        for j, (film_data, embedding) in enumerate(zip(batch, embeddings)):
+        # Préparer les données pour insertion par lots
+        insert_data = []
+        for film_data, embedding in zip(batch, embeddings):
             film_id = film_data[0]
             vec_str = "[" + ",".join(f"{x:.8f}" for x in embedding.tolist()) + "]"
-            
-            cur.execute("""
-                INSERT INTO film_embeddings (film_id, embedding)
-                VALUES (%s, %s::vector)
-                ON CONFLICT (film_id) DO UPDATE SET embedding = EXCLUDED.embedding
-            """, (film_id, vec_str))
-            
-            total_generated += 1
+            insert_data.append((film_id, vec_str))
         
+        # Insérer par lots (plus rapide)
+        execute_values(
+            cur,
+            """
+            INSERT INTO film_embeddings (film_id, embedding)
+            VALUES %s
+            ON CONFLICT (film_id) DO UPDATE SET embedding = EXCLUDED.embedding
+            """,
+            insert_data,
+            template=None,
+            page_size=batch_size
+        )
+        
+        total_generated += len(insert_data)
         conn.commit()
         print(f"Lot {i//batch_size + 1} terminé: {total_generated}/{len(films)} embeddings générés")
     
