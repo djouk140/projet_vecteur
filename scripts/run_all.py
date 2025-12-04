@@ -30,8 +30,14 @@ def create_index():
         conn = get_connection()
         cur = conn.cursor()
         
-        with open(index_path, 'r', encoding='utf-8') as f:
-            index_sql = f.read()
+        # Lire le fichier SQL (gestion de l'encodage)
+        try:
+            with open(index_path, 'r', encoding='utf-8') as f:
+                index_sql = f.read()
+        except UnicodeDecodeError:
+            # Fallback si UTF-8 échoue
+            with open(index_path, 'r', encoding='latin-1') as f:
+                index_sql = f.read()
         
         print("Création de l'index (cela peut prendre du temps)...")
         cur.execute(index_sql)

@@ -165,23 +165,32 @@ Le projet utilise par défaut `sentence-transformers/all-mpnet-base-v2` (768 dim
 
 ### 1. Ingestion des données
 
-Préparez un fichier CSV avec les colonnes suivantes :
+Le projet inclut un fichier `data/films.csv` avec une collection de films. Vous pouvez également utiliser votre propre fichier CSV.
+
+Format CSV attendu (colonnes) :
 
 - `title` (obligatoire) : Titre du film
-- `year` : Année de sortie
-- `genres` : Genres séparés par `|`, `,` ou `;`
-- `cast` : Acteurs séparés par `|`, `,` ou `;`
+- `year` : Année de sortie (int ou float, ex: 2009 ou 2009.0)
+- `genres` : Genres au format liste Python `['Action', 'Adventure']` ou séparés par `|`, `,` ou `;`
+- `cast` : Acteurs au format liste Python `['Actor1', 'Actor2']` ou séparés par `|`, `,` ou `;`
 - `synopsis` : Description du film
 - `meta` : JSON optionnel avec métadonnées
 
-Exemple :
+Exemples de formats supportés :
 
 ```csv
 title,year,genres,cast,synopsis
 The Matrix,1999,"Sci-Fi,Action","Keanu Reeves|Laurence Fishburne","A computer hacker learns..."
+Avatar,2009.0,"['Action', 'Adventure', 'Fantasy']",,"Un marine paraplégique..."
 ```
 
-Puis ingérez les données :
+Pour ingérer le fichier `films.csv` inclus :
+
+```bash
+python scripts/ingest_films.py data/films.csv
+```
+
+Ou avec votre propre fichier :
 
 ```bash
 python scripts/ingest_films.py data/vos_films.csv

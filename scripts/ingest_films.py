@@ -17,21 +17,50 @@ def clean_genres(genres_str):
     """Nettoie et formate les genres."""
     if pd.isna(genres_str) or genres_str == "":
         return []
+    
+    genres_str = str(genres_str).strip()
+    
+    # Supporte le format liste Python: "['Action', 'Adventure']"
+    if genres_str.startswith('[') and genres_str.endswith(']'):
+        try:
+            import ast
+            genres_list = ast.literal_eval(genres_str)
+            if isinstance(genres_list, list):
+                return [str(g).strip().strip("'\"") for g in genres_list if g]
+        except (ValueError, SyntaxError):
+            pass
+    
     # Supporte plusieurs formats: "|", ",", ";"
     for sep in ["|", ",", ";"]:
-        if sep in str(genres_str):
-            return [g.strip() for g in str(genres_str).split(sep) if g.strip()]
-    return [str(genres_str).strip()] if str(genres_str).strip() else []
+        if sep in genres_str:
+            return [g.strip().strip("'\"") for g in genres_str.split(sep) if g.strip()]
+    
+    return [genres_str.strip().strip("'\"")] if genres_str else []
 
 
 def clean_cast(cast_str):
     """Nettoie et formate le cast."""
     if pd.isna(cast_str) or cast_str == "":
         return []
+    
+    cast_str = str(cast_str).strip()
+    
+    # Supporte le format liste Python: "['Actor1', 'Actor2']"
+    if cast_str.startswith('[') and cast_str.endswith(']'):
+        try:
+            import ast
+            cast_list = ast.literal_eval(cast_str)
+            if isinstance(cast_list, list):
+                return [str(c).strip().strip("'\"") for c in cast_list if c]
+        except (ValueError, SyntaxError):
+            pass
+    
+    # Supporte plusieurs formats: "|", ",", ";"
     for sep in ["|", ",", ";"]:
-        if sep in str(cast_str):
-            return [c.strip() for c in str(cast_str).split(sep) if c.strip()]
-    return [str(cast_str).strip()] if str(cast_str).strip() else []
+        if sep in cast_str:
+            return [c.strip().strip("'\"") for c in cast_str.split(sep) if c.strip()]
+    
+    return [cast_str.strip().strip("'\"")] if cast_str else []
 
 
 def ingest_from_csv(csv_path, batch_size=1000):
@@ -40,9 +69,9 @@ def ingest_from_csv(csv_path, batch_size=1000):
     
     Format CSV attendu (colonnes):
     - title: titre du film (obligatoire)
-    - year: année de sortie
-    - genres: genres séparés par |, , ou ;
-    - cast: acteurs séparés par |, , ou ;
+    - year: année de sortie (int ou float)
+    - genres: genres au format liste Python ["Genre1", "Genre2"] ou séparés par |, , ou ;
+    - cast: acteurs au format liste Python ["Actor1", "Actor2"] ou séparés par |, , ou ;
     - synopsis: description du film
     - meta: JSON optionnel avec métadonnées
     
@@ -73,7 +102,18 @@ def ingest_from_csv(csv_path, batch_size=1000):
         if not title:
             continue
             
-        year = int(row["year"]) if pd.notna(row.get("year")) and str(row["year"]).isdigit() else None
+        # Gestion de l'année (peut être int, float, ou string)
+        year = None
+        if pd.notna(row.get("year")):
+            try:
+                year_val = row["year"]
+                if isinstance(year_val, (int, float)):
+                    year = int(year_val)
+                elif isinstance(year_val, str):
+                    # Essayer de convertir en float puis int pour gérer "2009.0"
+                    year = int(float(year_val))
+            except (ValueError, TypeError):
+                year = None
         genres = clean_genres(row.get("genres"))
         cast = clean_cast(row.get("cast"))
         synopsis = str(row["synopsis"]).strip() if pd.notna(row.get("synopsis")) else None

@@ -16,8 +16,11 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 
 from config.database import get_connection, get_connection_dict, close_connection_pool
-from sentence_transformers import SentenceTransformer
 from dotenv import load_dotenv
+import psycopg2
+
+# Import lazy de SentenceTransformer pour éviter les problèmes au démarrage
+SentenceTransformer = None
 
 load_dotenv()
 
@@ -38,14 +41,86 @@ app.add_middleware(
 
 # Chargement du modèle d'embeddings (une seule fois au démarrage)
 _model = None
+_model_loading_error = None
 
 def get_model():
-    """Retourne le modèle d'embeddings (chargé en lazy loading)."""
-    global _model
+    """Retourne le modèle d'embeddings (chargé en lazy loading avec optimisation mémoire)."""
+    global _model, _model_loading_error, SentenceTransformer
+    
+    if _model_loading_error:
+        raise _model_loading_error
+    
+    # Import lazy de SentenceTransformer
+    if SentenceTransformer is None:
+        try:
+            from sentence_transformers import SentenceTransformer as ST
+            SentenceTransformer = ST
+        except OSError as e:
+            if "1114" in str(e) or "dll" in str(e).lower():
+                error_msg = (
+                    "Erreur lors du chargement de PyTorch. "
+                    "Réinstallez PyTorch avec: pip install torch --force-reinstall"
+                )
+                _model_loading_error = HTTPException(status_code=503, detail=error_msg)
+                raise _model_loading_error
+            else:
+                raise
+    
     if _model is None:
-        model_name = os.getenv("EMBEDDING_MODEL", "sentence-transformers/all-mpnet-base-v2")
-        print(f"Chargement du modèle: {model_name}")
-        _model = SentenceTransformer(model_name)
+        try:
+            model_name = os.getenv("EMBEDDING_MODEL", "sentence-transformers/all-mpnet-base-v2")
+            print(f"Chargement du modèle: {model_name}")
+            
+            # Options pour réduire l'utilisation mémoire
+            # Utiliser device='cpu' pour éviter les problèmes de GPU
+            # et réduire la consommation mémoire
+            try:
+                import torch
+                device = 'cpu'
+            except:
+                device = 'cpu'
+            
+            # Charger le modèle avec des options optimisées
+            _model = SentenceTransformer(
+                model_name,
+                device=device,
+            )
+            
+            # Mettre le modèle en mode évaluation pour économiser la mémoire
+            _model.eval()
+            
+            # Optionnel: désactiver le gradient pour économiser la mémoire
+            try:
+                for param in _model.parameters():
+                    param.requires_grad = False
+            except:
+                pass  # Ignorer si pas de paramètres
+                
+            print(f"Modèle chargé avec succès sur {device}")
+            
+        except OSError as e:
+            if "1455" in str(e) or "paging file" in str(e).lower() or "fichier de pagination" in str(e).lower():
+                error_msg = (
+                    "Erreur de mémoire insuffisante lors du chargement du modèle. "
+                    "Solutions: augmentez le fichier de pagination Windows, "
+                    "utilisez un modèle plus léger (all-MiniLM-L6-v2), "
+                    "ou fermez d'autres applications."
+                )
+                _model_loading_error = HTTPException(status_code=503, detail=error_msg)
+                raise _model_loading_error
+            else:
+                _model_loading_error = HTTPException(
+                    status_code=500,
+                    detail=f"Erreur lors du chargement du modèle: {str(e)}"
+                )
+                raise _model_loading_error
+        except Exception as e:
+            _model_loading_error = HTTPException(
+                status_code=500,
+                detail=f"Erreur lors du chargement du modèle: {str(e)}"
+            )
+            raise _model_loading_error
+    
     return _model
 
 
@@ -252,8 +327,18 @@ def recommend_by_film(
         
     except HTTPException:
         raise
+    except psycopg2.OperationalError as e:
+        error_msg = str(e).replace('\n', ' ')
+        raise HTTPException(
+            status_code=503,
+            detail=f"Erreur de connexion à PostgreSQL: {error_msg}"
+        )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erreur lors de la recommandation: {str(e)}")
+        error_msg = str(e)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erreur lors de la recommandation: {error_msg}"
+        )
     finally:
         if conn:
             conn.close()
@@ -342,8 +427,34 @@ def search(
             count=len(recommendations)
         )
         
+    except HTTPException:
+        raise
+    except psycopg2.OperationalError as e:
+        error_msg = str(e).replace('\n', ' ')
+        raise HTTPException(
+            status_code=503,
+            detail=f"Erreur de connexion à PostgreSQL: {error_msg}"
+        )
+    except OSError as e:
+        if "1455" in str(e) or "paging file" in str(e).lower() or "fichier de pagination" in str(e).lower():
+            error_msg = (
+                "Erreur de mémoire insuffisante. "
+                "Le système manque de mémoire virtuelle. "
+                "Solutions: augmentez le fichier de pagination Windows, "
+                "fermez d'autres applications, ou redémarrez votre ordinateur."
+            )
+            raise HTTPException(status_code=503, detail=error_msg)
+        else:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Erreur système: {str(e)}"
+            )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erreur lors de la recherche: {str(e)}")
+        error_msg = str(e)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erreur lors de la recherche: {error_msg}"
+        )
     finally:
         if conn:
             conn.close()
@@ -378,8 +489,18 @@ def get_film(film_id: int):
         
     except HTTPException:
         raise
+    except psycopg2.OperationalError as e:
+        error_msg = str(e).replace('\n', ' ')
+        raise HTTPException(
+            status_code=503,
+            detail=f"Erreur de connexion à PostgreSQL: {error_msg}"
+        )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erreur: {str(e)}")
+        error_msg = str(e)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erreur: {error_msg}"
+        )
     finally:
         if conn:
             conn.close()
@@ -465,8 +586,18 @@ def get_stats():
             "index_size": index_size
         }
         
+    except psycopg2.OperationalError as e:
+        error_msg = str(e).replace('\n', ' ')
+        raise HTTPException(
+            status_code=503,
+            detail=f"Erreur de connexion à PostgreSQL: {error_msg}"
+        )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erreur: {str(e)}")
+        error_msg = str(e)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erreur lors de la récupération des statistiques: {error_msg}"
+        )
     finally:
         if conn:
             conn.close()

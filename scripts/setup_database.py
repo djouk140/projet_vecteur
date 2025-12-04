@@ -8,6 +8,7 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).parent.parent))
 
+import psycopg2
 from config.database import get_connection, DB_CONFIG
 from dotenv import load_dotenv
 
@@ -51,9 +52,14 @@ def setup_schema():
         conn = get_connection()
         cur = conn.cursor()
         
-        # Lire et exécuter le schéma
-        with open(schema_path, 'r', encoding='utf-8') as f:
-            schema_sql = f.read()
+        # Lire et exécuter le schéma (gestion de l'encodage)
+        try:
+            with open(schema_path, 'r', encoding='utf-8') as f:
+                schema_sql = f.read()
+        except UnicodeDecodeError:
+            # Fallback si UTF-8 échoue
+            with open(schema_path, 'r', encoding='latin-1') as f:
+                schema_sql = f.read()
         
         # Exécuter chaque commande
         cur.execute(schema_sql)
@@ -92,17 +98,50 @@ def check_connection():
         cur.execute("SELECT version();")
         version = cur.fetchone()[0]
         print(f"✓ Connexion réussie")
-        print(f"  Version PostgreSQL: {version.split(',')[0]}")
+        # Gérer l'encodage pour l'affichage de la version
+        try:
+            version_str = str(version.split(',')[0])
+        except (UnicodeDecodeError, UnicodeEncodeError):
+            version_str = "PostgreSQL (version non disponible)"
+        print(f"  Version PostgreSQL: {version_str}")
         cur.close()
         conn.close()
         return True
-    except Exception as e:
-        print(f"✗ Erreur de connexion: {e}")
+    except UnicodeDecodeError as e:
+        # Erreur d'encodage - probablement dans le mot de passe ou la configuration
+        print(f"✗ Erreur d'encodage lors de la connexion")
+        print(f"  Le problème vient probablement du fichier .env")
+        print(f"  Vérifiez que le fichier .env est encodé en UTF-8")
+        print(f"  Vérifiez aussi que le mot de passe ne contient pas de caractères spéciaux problématiques")
+        print(f"  Configuration actuelle:")
+        print(f"    DB_NAME={DB_CONFIG['dbname']}")
+        print(f"    DB_USER={DB_CONFIG['user']}")
+        print(f"    DB_HOST={DB_CONFIG['host']}")
+        print(f"    DB_PORT={DB_CONFIG['port']}")
+        print(f"    DB_PASSWORD={'*' * len(DB_CONFIG.get('password', '')) if DB_CONFIG.get('password') else '(non défini)'}")
+        return False
+    except psycopg2.OperationalError as e:
+        # Gérer spécifiquement les erreurs de connexion
+        try:
+            error_msg = str(e)
+        except (UnicodeDecodeError, UnicodeEncodeError):
+            error_msg = "Erreur de connexion (détails non disponibles - problème d'encodage)"
+        print(f"✗ Erreur de connexion: {error_msg}")
         print(f"  Vérifiez votre fichier .env avec:")
         print(f"    DB_NAME={DB_CONFIG['dbname']}")
         print(f"    DB_USER={DB_CONFIG['user']}")
         print(f"    DB_HOST={DB_CONFIG['host']}")
         print(f"    DB_PORT={DB_CONFIG['port']}")
+        password_display = '*' * len(DB_CONFIG.get('password', '')) if DB_CONFIG.get('password') else '(non défini)'
+        print(f"    DB_PASSWORD={password_display}")
+        return False
+    except Exception as e:
+        # Gérer les autres erreurs
+        try:
+            error_msg = str(e)
+        except (UnicodeDecodeError, UnicodeEncodeError):
+            error_msg = "Erreur inconnue (problème d'encodage)"
+        print(f"✗ Erreur: {error_msg}")
         return False
 
 
