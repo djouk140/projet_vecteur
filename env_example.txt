@@ -1,0 +1,18 @@
+# Configuration de la base de données PostgreSQL
+# Copiez ce fichier vers .env et remplissez les valeurs
+DB_NAME=filmsrec
+DB_USER=postgres
+DB_PASSWORD=your_password_here
+DB_HOST=localhost
+DB_PORT=5432
+
+# Configuration de l'API
+# Pour développement local, utilisez 127.0.0.1 ou localhost
+# Pour permettre l'accès depuis d'autres machines, utilisez 0.0.0.0
+API_HOST=127.0.0.1
+API_PORT=8000
+
+# Configuration du modèle d'embeddings
+EMBEDDING_MODEL=sentence-transformers/all-mpnet-base-v2
+EMBEDDING_DIMENSION=768
+

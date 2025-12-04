@@ -1,0 +1,47 @@
+# Environnement virtuel
+venv/
+env/
+ENV/
+.venv
+
+# Variables d'environnement
+.env
+.env.local
+
+# Fichiers Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Données
+data/raw/
+data/processed/
+*.csv
+*.json
+!data/sample_*.csv
+!data/sample_*.json
+
+# Logs
+*.log
+logs/
+
+# Base de données (si dump)
+*.sql
+*.dump
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+

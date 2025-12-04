@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎬 Recommandation de Films - pgvector</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1 class="logo">🎬 Film Recommender</h1>
+                <p class="subtitle">Recherche sémantique intelligente avec pgvector</p>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Search Section -->
+            <section class="search-section">
+                <div class="search-card">
+                    <h2 class="section-title">Rechercher des films</h2>
+                    <p class="section-description">Décrivez le type de film que vous recherchez en langage naturel</p>
+                    
+                    <div class="search-container">
+                        <input 
+                            type="text" 
+                            id="searchInput" 
+                            class="search-input" 
+                            placeholder="Ex: film de science-fiction avec des voyages dans l'espace..."
+                            autocomplete="off"
+                        >
+                        <button id="searchBtn" class="search-btn">
+                            <span class="btn-text">Rechercher</span>
+                            <span class="btn-loader" style="display: none;">⏳</span>
+                        </button>
+                    </div>
+
+                    <div class="filters">
+                        <input 
+                            type="number" 
+                            id="minYear" 
+                            class="filter-input" 
+                            placeholder="Année min"
+                            min="1900"
+                        >
+                        <input 
+                            type="number" 
+                            id="maxYear" 
+                            class="filter-input" 
+                            placeholder="Année max"
+                            min="1900"
+                        >
+                        <input 
+                            type="text" 
+                            id="genresFilter" 
+                            class="filter-input" 
+                            placeholder="Genres (séparés par virgules)"
+                        >
+                        <input 
+                            type="number" 
+                            id="resultsCount" 
+                            class="filter-input" 
+                            placeholder="Nombre de résultats"
+                            value="10"
+                            min="1"
+                            max="100"
+                        >
+                    </div>
+                </div>
+            </section>
+
+            <!-- Stats Section -->
+            <section class="stats-section" id="statsSection" style="display: none;">
+                <div class="stats-card">
+                    <h3 class="stats-title">📊 Statistiques de la base</h3>
+                    <div class="stats-grid" id="statsGrid">
+                        <!-- Stats will be loaded here -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Results Section -->
+            <section class="results-section" id="resultsSection" style="display: none;">
+                <div class="results-header">
+                    <h2 class="results-title">Résultats de la recherche</h2>
+                    <span class="results-count" id="resultsCount"></span>
+                </div>
+                <div class="films-grid" id="filmsGrid">
+                    <!-- Films will be loaded here -->
+                </div>
+            </section>
+
+            <!-- Recommendation Section -->
+            <section class="recommendation-section" id="recommendationSection" style="display: none;">
+                <div class="recommendation-header">
+                    <h2 class="recommendation-title">Films similaires</h2>
+                    <p class="recommendation-subtitle" id="recommendationSubtitle"></p>
+                </div>
+                <div class="films-grid" id="recommendationsGrid">
+                    <!-- Recommendations will be loaded here -->
+                </div>
+            </section>
+
+            <!-- Film Details Modal -->
+            <div class="modal" id="filmModal" style="display: none;">
+                <div class="modal-content">
+                    <span class="close-btn" id="closeModal">&times;</span>
+                    <div id="filmDetails">
+                        <!-- Film details will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loading Spinner -->
+            <div class="loading" id="loading" style="display: none;">
+                <div class="spinner"></div>
+                <p>Chargement en cours...</p>
+            </div>
+
+            <!-- Error Message -->
+            <div class="error-message" id="errorMessage" style="display: none;"></div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>Powered by FastAPI, pgvector & Sentence Transformers</p>
+        </footer>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
+
