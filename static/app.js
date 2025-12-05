@@ -1,6 +1,9 @@
 // Configuration
 const API_BASE_URL = window.location.origin;
 
+// Global state
+let currentUser = null;
+
 // DOM Elements
 const searchInput = document.getElementById('searchInput');
 const searchBtn = document.getElementById('searchBtn');
@@ -20,9 +23,21 @@ const errorMessage = document.getElementById('errorMessage');
 const filmModal = document.getElementById('filmModal');
 const closeModal = document.getElementById('closeModal');
 const filmDetails = document.getElementById('filmDetails');
+const userHeader = document.getElementById('userHeader');
+const userAvatar = document.getElementById('userAvatar');
+const userName = document.getElementById('userName');
+const historyBtn = document.getElementById('historyBtn');
+const adminBtn = document.getElementById('adminBtn');
+const logoutBtn = document.getElementById('logoutBtn');
+const historySection = document.getElementById('historySection');
+const historyList = document.getElementById('historyList');
+const closeHistoryBtn = document.getElementById('closeHistoryBtn');
 
 // Load stats on page load
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    // Check authentication first
+    await checkAuth();
+    
     loadStats();
     
     // Add event listeners
@@ -36,13 +51,140 @@ document.addEventListener('DOMContentLoaded', () => {
         filmModal.style.display = 'none';
     });
     
+    if (historyBtn) {
+        historyBtn.addEventListener('click', loadSearchHistory);
+    }
+    if (closeHistoryBtn) {
+        closeHistoryBtn.addEventListener('click', () => {
+            historySection.style.display = 'none';
+        });
+    }
+    if (adminBtn) {
+        adminBtn.addEventListener('click', () => {
+            window.location.href = '/static/admin.html';
+        });
+    }
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', handleLogout);
+    }
+    
     // Close modal when clicking outside
     window.addEventListener('click', (e) => {
         if (e.target === filmModal) {
             filmModal.style.display = 'none';
         }
+        if (e.target === historySection) {
+            historySection.style.display = 'none';
+        }
     });
 });
+
+// Check authentication
+async function checkAuth() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
+            credentials: 'include'
+        });
+        
+        if (response.ok) {
+            currentUser = await response.json();
+            displayUserInfo(currentUser);
+        } else {
+            // Not authenticated, redirect to login
+            window.location.href = '/static/login.html';
+        }
+    } catch (error) {
+        console.error('Auth check error:', error);
+        window.location.href = '/static/login.html';
+    }
+}
+
+// Display user info in header
+function displayUserInfo(user) {
+    if (userHeader && user) {
+        userHeader.style.display = 'flex';
+        if (userAvatar) {
+            userAvatar.src = user.avatar_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed=default';
+        }
+        if (userName) {
+            userName.textContent = user.username;
+        }
+        if (adminBtn && user.role === 'admin') {
+            adminBtn.style.display = 'inline-block';
+        }
+    }
+}
+
+// Handle logout
+async function handleLogout() {
+    try {
+        await fetch(`${API_BASE_URL}/api/auth/logout`, {
+            method: 'POST',
+            credentials: 'include'
+        });
+        window.location.href = '/static/login.html';
+    } catch (error) {
+        console.error('Logout error:', error);
+        window.location.href = '/static/login.html';
+    }
+}
+
+// Load search history
+async function loadSearchHistory() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/search-history`, {
+            credentials: 'include'
+        });
+        
+        if (!response.ok) throw new Error('Failed to load history');
+        
+        const data = await response.json();
+        displaySearchHistory(data.history);
+        historySection.style.display = 'block';
+    } catch (error) {
+        showError(`Erreur lors du chargement de l'historique: ${error.message}`);
+    }
+}
+
+// Display search history
+function displaySearchHistory(history) {
+    if (!historyList) return;
+    
+    if (history.length === 0) {
+        historyList.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 2rem;">Aucune recherche effectuée</p>';
+        return;
+    }
+    
+    historyList.innerHTML = history.map(item => {
+        const date = new Date(item.created_at).toLocaleString('fr-FR');
+        const filters = item.filters || {};
+        let filtersText = '';
+        if (filters.genres) filtersText += `Genres: ${filters.genres.join(', ')} `;
+        if (filters.min_year) filtersText += `Année min: ${filters.min_year} `;
+        if (filters.max_year) filtersText += `Année max: ${filters.max_year}`;
+        
+        return `
+            <div class="history-item" data-query="${escapeHtml(item.query_text)}">
+                <div class="history-item-header">
+                    <strong>${escapeHtml(item.query_text)}</strong>
+                    <span class="history-date">${date}</span>
+                </div>
+                ${filtersText ? `<div class="history-filters">${escapeHtml(filtersText)}</div>` : ''}
+                <div class="history-results">${item.results_count} résultat(s)</div>
+            </div>
+        `;
+    }).join('');
+    
+    // Add click listeners to history items
+    historyList.querySelectorAll('.history-item').forEach(item => {
+        item.addEventListener('click', () => {
+            const query = item.dataset.query;
+            searchInput.value = query;
+            historySection.style.display = 'none';
+            handleSearch();
+        });
+    });
+}
 
 // Load statistics
 async function loadStats() {
@@ -108,7 +250,9 @@ async function handleSearch() {
         if (maxYear.value) params.append('max_year', maxYear.value);
         if (genresFilter.value) params.append('genres', genresFilter.value);
 
-        const response = await fetch(`${API_BASE_URL}/search?${params}`);
+        const response = await fetch(`${API_BASE_URL}/search?${params}`, {
+            credentials: 'include'
+        });
         
         if (!response.ok) {
             const error = await response.json();
@@ -221,11 +365,21 @@ function createFilmCard(film, distance = null, posterUrl = null) {
 // Load film details
 async function loadFilmDetails(filmId) {
     try {
-        const response = await fetch(`${API_BASE_URL}/films/${filmId}`);
-        if (!response.ok) throw new Error('Failed to load film details');
+        const [filmResponse, metadataResponse] = await Promise.all([
+            fetch(`${API_BASE_URL}/films/${filmId}`),
+            fetch(`${API_BASE_URL}/api/film/${filmId}/metadata`)
+        ]);
         
-        const film = await response.json();
-        displayFilmDetails(film);
+        if (!filmResponse.ok) throw new Error('Failed to load film details');
+        
+        const film = await filmResponse.json();
+        let metadata = {};
+        
+        if (metadataResponse.ok) {
+            metadata = await metadataResponse.json();
+        }
+        
+        displayFilmDetails(film, metadata);
         filmModal.style.display = 'flex';
     } catch (error) {
         showError(`Erreur lors du chargement des détails: ${error.message}`);
@@ -234,15 +388,131 @@ async function loadFilmDetails(filmId) {
 }
 
 // Display film details in modal
-function displayFilmDetails(film) {
+function displayFilmDetails(film, metadata = {}) {
     const genres = film.genres ? film.genres.join(', ') : 'Non spécifié';
     const cast = film.cast ? film.cast.join(', ') : 'Non spécifié';
     const synopsis = film.synopsis || 'Aucune description disponible';
+    const posterUrl = metadata.poster_url || getPlaceholderImage(film.title);
+    const backdropUrl = metadata.backdrop_url || null;
+    const trailerUrl = metadata.trailer_url;
+    const trailerYoutubeId = metadata.trailer_youtube_id;
+    const streamingPlatforms = metadata.streaming_platforms || [];
 
     filmDetails.innerHTML = `
         <div class="film-details">
-            <h2 class="film-details-title">${escapeHtml(film.title)}</h2>
-            ${film.year ? `<div class="film-details-year">Année: ${film.year}</div>` : ''}
+            ${backdropUrl ? `
+            <div class="film-details-backdrop" style="background-image: url('${backdropUrl}');"></div>
+            ` : ''}
+            <div class="film-details-content">
+                <div class="film-details-main">
+                    <div class="film-details-poster">
+                        <img src="${posterUrl}" alt="${escapeHtml(film.title)}" class="film-details-poster-img">
+                    </div>
+                    <div class="film-details-info">
+                        <h2 class="film-details-title">${escapeHtml(film.title)}</h2>
+                        ${film.year ? `<div class="film-details-year">Année: ${film.year}</div>` : ''}
+                        
+                        ${trailerUrl && trailerYoutubeId ? `
+                        <div class="film-details-section">
+                            <h3>Bande annonce</h3>
+                            <div class="trailer-container">
+                                <iframe 
+                                    width="560" 
+                                    height="315" 
+                                    src="https://www.youtube.com/embed/${trailerYoutubeId}" 
+                                    frameborder="0" 
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                    allowfullscreen
+                                    class="trailer-iframe">
+                                </iframe>
+                            </div>
+                        </div>
+                        ` : ''}
+                        
+                        <div class="film-details-section">
+                            <h3>Genres</h3>
+                            <p>${escapeHtml(genres)}</p>
+                        </div>
+                        
+                        ${cast !== 'Non spécifié' ? `
+                        <div class="film-details-section">
+                            <h3>Cast</h3>
+                            <p>${escapeHtml(cast)}</p>
+                        </div>
+                        ` : ''}
+                        
+                        <div class="film-details-section">
+                            <h3>Synopsis</h3>
+                            <p>${escapeHtml(synopsis)}</p>
+                        </div>
+                        
+                        ${streamingPlatforms.length > 0 ? `
+                        <div class="film-details-section">
+                            <h3>Disponible sur</h3>
+                            <div class="streaming-platforms">
+                                ${streamingPlatforms.map(platform => `
+                                    <div class="streaming-platform" title="${escapeHtml(platform.name)}">
+                                        ${platform.logo_url ? 
+                                            `<img src="${platform.logo_url}" alt="${escapeHtml(platform.name)}" class="platform-logo">` :
+                                            `<span>${escapeHtml(platform.name)}</span>`
+                                        }
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                        ` : ''}
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    filmDetails.innerHTML = `
+        <div class="film-details">
+            <div class="film-details-header">
+                <div class="film-details-poster">
+                    <img src="${posterUrl}" alt="${escapeHtml(film.title)}" class="film-details-poster-img">
+                </div>
+                <div class="film-details-info">
+                    <h2 class="film-details-title">${escapeHtml(film.title)}</h2>
+                    ${film.year ? `<div class="film-details-year">Année: ${film.year}</div>` : ''}
+                    
+                    ${trailerUrl ? `
+                    <div class="film-details-trailer">
+                        <a href="${trailerUrl}" target="_blank" class="trailer-btn">
+                            ▶️ Voir la bande annonce
+                        </a>
+                        ${trailerYoutubeId ? `
+                        <div class="trailer-embed">
+                            <iframe 
+                                width="560" 
+                                height="315" 
+                                src="https://www.youtube.com/embed/${trailerYoutubeId}" 
+                                frameborder="0" 
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                allowfullscreen>
+                            </iframe>
+                        </div>
+                        ` : ''}
+                    </div>
+                    ` : ''}
+                </div>
+            </div>
+            
+            ${streamingPlatforms.length > 0 ? `
+            <div class="film-details-section">
+                <h3>Disponible sur</h3>
+                <div class="streaming-platforms">
+                    ${streamingPlatforms.map(platform => `
+                        <div class="streaming-platform">
+                            <img src="${platform.logo_url || ''}" alt="${escapeHtml(platform.name)}" 
+                                 class="platform-logo" onerror="this.style.display='none'">
+                            <span>${escapeHtml(platform.name)}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+            ` : ''}
             
             <div class="film-details-section">
                 <h3>Genres</h3>
@@ -311,7 +581,24 @@ async function loadPosterImages(recommendations, containerSelector = '.films-gri
         if (!cardElement) return;
 
         try {
-            // Try to get poster from API or use placeholder
+            // Try to get metadata first (includes poster)
+            try {
+                const metadataResponse = await fetch(`${API_BASE_URL}/api/film/${film.id}/metadata`);
+                if (metadataResponse.ok) {
+                    const metadata = await metadataResponse.json();
+                    if (metadata.poster_url) {
+                        const img = cardElement.querySelector('.film-poster');
+                        if (img) {
+                            img.src = metadata.poster_url;
+                            return;
+                        }
+                    }
+                }
+            } catch (e) {
+                // Continue to fallback
+            }
+            
+            // Fallback to poster endpoint
             const posterUrl = await getFilmPoster(film.title, film.year);
             const img = cardElement.querySelector('.film-poster');
             if (img && img.src !== posterUrl) {

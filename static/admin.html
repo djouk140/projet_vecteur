@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tableau de bord Admin - Recommandation de Films</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <link rel="stylesheet" href="/static/admin.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="header-left">
+                    <h1 class="logo">⚙️ Tableau de bord Admin</h1>
+                    <p class="subtitle">Gestion et statistiques de la plateforme</p>
+                </div>
+                <div class="header-right">
+                    <a href="/" class="header-btn">🏠 Accueil</a>
+                    <button id="logoutBtn" class="header-btn">Déconnexion</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- KPI Section -->
+            <section class="kpi-section">
+                <h2 class="section-title">Indicateurs clés (KPI)</h2>
+                <div class="kpi-grid" id="kpiGrid">
+                    <!-- KPI cards will be loaded here -->
+                </div>
+            </section>
+
+            <!-- Charts Section -->
+            <section class="charts-section">
+                <div class="charts-grid">
+                    <div class="chart-card">
+                        <h3 class="chart-title">Nouveaux utilisateurs (7 derniers jours)</h3>
+                        <canvas id="usersChart"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <h3 class="chart-title">Recherches (7 derniers jours)</h3>
+                        <canvas id="searchesChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tabs Section -->
+            <section class="tabs-section">
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="users">👥 Utilisateurs</button>
+                    <button class="tab-btn" data-tab="sessions">🔐 Sessions</button>
+                    <button class="tab-btn" data-tab="history">📜 Historique</button>
+                    <button class="tab-btn" data-tab="watched">🎬 Films visionnés</button>
+                </div>
+
+                <!-- Users Tab -->
+                <div class="tab-content active" id="usersTab">
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Username</th>
+                                    <th>Email</th>
+                                    <th>Rôle</th>
+                                    <th>Statut</th>
+                                    <th>Créé le</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usersTableBody">
+                                <!-- Users will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Sessions Tab -->
+                <div class="tab-content" id="sessionsTab">
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Utilisateur</th>
+                                    <th>IP</th>
+                                    <th>User Agent</th>
+                                    <th>Créé le</th>
+                                    <th>Expire le</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sessionsTableBody">
+                                <!-- Sessions will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- History Tab -->
+                <div class="tab-content" id="historyTab">
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Utilisateur</th>
+                                    <th>Requête</th>
+                                    <th>Filtres</th>
+                                    <th>Résultats</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody id="historyTableBody">
+                                <!-- History will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Watched Films Tab -->
+                <div class="tab-content" id="watchedTab">
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Utilisateur</th>
+                                    <th>Film</th>
+                                    <th>Année</th>
+                                    <th>Note</th>
+                                    <th>Visionné le</th>
+                                </tr>
+                            </thead>
+                            <tbody id="watchedTableBody">
+                                <!-- Watched films will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Loading Spinner -->
+        <div class="loading" id="loading" style="display: none;">
+            <div class="spinner"></div>
+            <p>Chargement en cours...</p>
+        </div>
+
+        <!-- Error Message -->
+        <div class="error-message" id="errorMessage" style="display: none;"></div>
+    </div>
+
+    <script src="/static/admin.js"></script>
+</body>
+</html>

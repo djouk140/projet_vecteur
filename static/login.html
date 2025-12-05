@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connexion - Recommandation de Films</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <link rel="stylesheet" href="/static/login.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <h1 class="login-logo">🎬 Film Recommender</h1>
+                <p class="login-subtitle">Recommandation de films intelligente</p>
+            </div>
+
+            <!-- Formulaire de connexion -->
+            <div class="form-container" id="loginForm">
+                <h2>Connexion</h2>
+                <form id="loginFormElement">
+                    <div class="form-group">
+                        <label for="loginUsername">Nom d'utilisateur ou Email</label>
+                        <input type="text" id="loginUsername" required autocomplete="username">
+                    </div>
+                    <div class="form-group">
+                        <label for="loginPassword">Mot de passe</label>
+                        <input type="password" id="loginPassword" required autocomplete="current-password">
+                    </div>
+                    <button type="submit" class="btn-primary">Se connecter</button>
+                </form>
+                <p class="form-switch">
+                    Pas encore de compte ? 
+                    <a href="#" id="showRegister">Créer un compte</a>
+                </p>
+            </div>
+
+            <!-- Formulaire d'inscription -->
+            <div class="form-container" id="registerForm" style="display: none;">
+                <h2>Créer un compte</h2>
+                <form id="registerFormElement">
+                    <div class="form-group">
+                        <label for="registerUsername">Nom d'utilisateur</label>
+                        <input type="text" id="registerUsername" required minlength="3" maxlength="50" autocomplete="username">
+                    </div>
+                    <div class="form-group">
+                        <label for="registerEmail">Email</label>
+                        <input type="email" id="registerEmail" required autocomplete="email">
+                    </div>
+                    <div class="form-group">
+                        <label for="registerPassword">Mot de passe</label>
+                        <input type="password" id="registerPassword" required minlength="6" autocomplete="new-password">
+                    </div>
+                    <div class="form-group">
+                        <label for="registerGender">Genre (optionnel)</label>
+                        <select id="registerGender">
+                            <option value="">Non spécifié</option>
+                            <option value="homme">Homme</option>
+                            <option value="femme">Femme</option>
+                            <option value="autre">Autre</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn-primary">Créer mon compte</button>
+                </form>
+                <p class="form-switch">
+                    Déjà un compte ? 
+                    <a href="#" id="showLogin">Se connecter</a>
+                </p>
+            </div>
+
+            <!-- Message d'erreur -->
+            <div class="error-message" id="errorMessage" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script src="/static/login.js"></script>
+</body>
+</html>
+

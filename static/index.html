@@ -14,8 +14,21 @@
         <!-- Header -->
         <header class="header">
             <div class="header-content">
-                <h1 class="logo">🎬 Film Recommender</h1>
-                <p class="subtitle">Recherche sémantique intelligente avec pgvector</p>
+                <div class="header-left">
+                    <h1 class="logo">🎬 Film Recommender</h1>
+                    <p class="subtitle">Recherche sémantique intelligente avec pgvector</p>
+                </div>
+                <div class="header-right" id="userHeader" style="display: none;">
+                    <div class="user-info">
+                        <img id="userAvatar" src="" alt="Avatar" class="user-avatar">
+                        <span id="userName" class="user-name"></span>
+                    </div>
+                    <div class="header-actions">
+                        <button id="historyBtn" class="header-btn">📜 Historique</button>
+                        <button id="adminBtn" class="header-btn" style="display: none;">⚙️ Admin</button>
+                        <button id="logoutBtn" class="header-btn">Déconnexion</button>
+                    </div>
+                </div>
             </div>
         </header>
 
@@ -75,6 +88,19 @@
                 </div>
             </section>
 
+            <!-- Search History Section -->
+            <section class="history-section" id="historySection" style="display: none;">
+                <div class="history-card">
+                    <div class="history-header">
+                        <h3 class="history-title">📜 Historique des recherches</h3>
+                        <button id="closeHistoryBtn" class="close-history-btn">&times;</button>
+                    </div>
+                    <div class="history-list" id="historyList">
+                        <!-- History items will be loaded here -->
+                    </div>
+                </div>
+            </section>
+
             <!-- Stats Section -->
             <section class="stats-section" id="statsSection" style="display: none;">
                 <div class="stats-card">
@@ -109,7 +135,7 @@
 
             <!-- Film Details Modal -->
             <div class="modal" id="filmModal" style="display: none;">
-                <div class="modal-content">
+                <div class="modal-content modal-large">
                     <span class="close-btn" id="closeModal">&times;</span>
                     <div id="filmDetails">
                         <!-- Film details will be loaded here -->

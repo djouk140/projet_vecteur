@@ -39,9 +39,10 @@ def create_hnsw_index():
         
         # VACUUM doit être exécuté en dehors d'une transaction
         print("Optimisation de la base de données...")
-        conn.commit()  # S'assurer qu'il n'y a pas de transaction active
+        conn.commit()  # Finaliser la transaction en cours
+        conn.autocommit = True  # Activer autocommit pour VACUUM
         cur.execute("VACUUM ANALYZE film_embeddings")
-        conn.commit()
+        conn.autocommit = False  # Désactiver autocommit
         
         print("✓ Index HNSW créé avec succès")
         
